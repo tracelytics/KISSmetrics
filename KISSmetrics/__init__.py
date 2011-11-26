@@ -11,10 +11,11 @@ import socket
 from datetime import datetime
 
 class KM(object):
-    def __init__(self, key, host='trk.kissmetrics.com:80', logging=True):
+    def __init__(self, key, host='trk.kissmetrics.com:80', logging=True, sync=False):
         self._key    = key
         self._host = host
         self._logging = logging
+        self._sync = sync
 
     def identify(self, id):
         self._id = id
@@ -89,8 +90,11 @@ class KM(object):
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             host, port = self._host.split(':')
+            if self._sync:
+                sock.settimeout(2.0)
             sock.connect((host, int(port)))
-            sock.setblocking(0) # 0 is non-blocking
+            if not self._sync:
+                sock.setblocking(0)
 
             get = 'GET /' + type + '?' + '&'.join(query) + " HTTP/1.1\r\n"
             out = get
@@ -100,3 +104,5 @@ class KM(object):
             sock.close()
         except:
             self.logm("Could not transmit to " + self._host)
+            if self._sync:
+                raise
